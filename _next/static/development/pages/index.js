@@ -284,7 +284,7 @@ var Relevant = function Relevant(_ref2) {
       lineNumber: 163
     },
     __self: this
-  }, "Pixel-reflow an image to match the dimensions of your text."), __jsx("div", {
+  }, "Pixel-reflow an image to match the dimensions of your text. Save the result as a diptych."), __jsx("div", {
     style: {
       background: '#efefef',
       marginLeft: '-2ch',
@@ -294,7 +294,7 @@ var Relevant = function Relevant(_ref2) {
     },
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 167
+      lineNumber: 168
     },
     __self: this
   }, __jsx(Relevant, {
@@ -302,7 +302,7 @@ var Relevant = function Relevant(_ref2) {
     clickKey: clickKey,
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 176
+      lineNumber: 177
     },
     __self: this
   })), __jsx("div", {
@@ -311,14 +311,14 @@ var Relevant = function Relevant(_ref2) {
     },
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 178
+      lineNumber: 179
     },
     __self: this
   }, __jsx("div", {
     style: ts,
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 183
+      lineNumber: 184
     },
     __self: this
   }, "Special"), __jsx(KeyList, {
@@ -326,33 +326,33 @@ var Relevant = function Relevant(_ref2) {
     items: [['w', 'save diptych as png'], ['?', 'help']],
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 184
+      lineNumber: 185
     },
     __self: this
   })), __jsx("div", {
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 189
+      lineNumber: 190
     },
     __self: this
   }, __jsx("a", {
     href: image_info[2],
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 190
+      lineNumber: 191
     },
     __self: this
   }, "Default image ", image_info[1])), __jsx("div", {
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 193
+      lineNumber: 194
     },
     __self: this
   }, __jsx("a", {
     href: "https://github.com/constraint-systems/diptych",
     __source: {
       fileName: _jsxFileName,
-      lineNumber: 194
+      lineNumber: 195
     },
     __self: this
   }, "View source"))));
