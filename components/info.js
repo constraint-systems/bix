@@ -161,7 +161,8 @@ export default ({ rlh, mode, help, clickKey, image_info }) => {
         }}
       >
         <div style={{ marginBottom: rlh / 4 }}>
-          Pixel-reflow an image to match the dimensions of your text.
+          Pixel-reflow an image to match the dimensions of your text. Save the
+          result as a diptych.
         </div>
 
         <div
