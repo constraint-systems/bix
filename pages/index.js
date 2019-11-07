@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Head from 'next/head';
 import Info from '../components/info';
 
 let fs = 16;
@@ -62,11 +61,38 @@ function wrapText(context, text, x, y, maxWidth, lineHeight) {
   return height;
 }
 
+let images = [
+  ['beach.jpg', 'by José Duarte', 'https://unsplash.com/photos/DuholBfUUCY'],
+  // [
+  //   'illustration.jpg',
+  //   'by Rockwell Kent',
+  //   'https://www.apollo-magazine.com/herman-melville-moby-dick-artists-illustrators/',
+  // ],
+  [
+    'peck.jpg',
+    'from Moby Dick (1956 film)',
+    'https://en.wikipedia.org/wiki/Moby_Dick_(1956_film)',
+  ],
+  [
+    'whale-jump.jpg',
+    'by Thomas Kelley',
+    'https://unsplash.com/photos/t20pc32VbrU',
+  ],
+  [
+    'whale-tail.jpg',
+    'by Iswanto Arif',
+    'https://unsplash.com/photos/VziuvwpGatM',
+  ],
+];
 let plain_text = `CHAPTER 1. Loomings.
 
 Call me Ishmael. Some years ago — never mind how long precisely — having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. It is a way I have of driving off the spleen and regulating the circulation. Whenever I find myself growing grim about the mouth; whenever it is a damp, drizzly November in my soul; whenever I find myself involuntarily pausing before coffin warehouses, and bringing up the rear of every funeral I meet; and especially whenever my hypos get such an upper hand of me, that it requires a strong moral principle to prevent me from deliberately stepping into the street, and methodically knocking people’s hats off — then, I account it high time to get to sea as soon as I can. This is my substitute for pistol and ball.  With a philosophical flourish Cato throws himself upon his sword; I quietly take to the ship. There is nothing surprising in this. If they but knew it, almost all men in their degree, some time or other, cherish very nearly the same feelings towards the ocean with me.
 
 There now is your insular city of the Manhattoes, belted round by wharves as Indian isles by coral reefs — commerce surrounds it with her surf. Right and left, the streets take you waterward. Its extreme downtown is the battery, where that noble mole is washed by waves, and cooled by breezes, which a few hours previous were out of sight of land. Look at the crowds of water-gazers there.`;
+
+let short_text = `CHAPTER 1. Loomings.
+
+Call me Ishmael. Some years ago — never mind how long precisely — having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. It is a way I have of driving off the spleen and regulating the circulation.`;
 
 const Home = img => {
   let rref = useRef(null);
@@ -80,6 +106,10 @@ const Home = img => {
   let [text, setText] = useState(plain_text);
   let [help, setHelp] = useState(true);
   let [mode, setMode] = useState('default');
+  let [default_image] = useState(
+    images[Math.floor(Math.random() * (images.length - 1))]
+  );
+  let [kickoff, setKickoff] = useState(false);
 
   function respond() {
     let aw = tref.current.offsetWidth;
@@ -133,7 +163,7 @@ const Home = img => {
     ) / 1000})`;
   }
 
-  function initImage(src) {
+  function initImage(src, callback) {
     let img = new Image();
     img.onload = () => {
       imgref.current = img;
@@ -142,11 +172,18 @@ const Home = img => {
     img.src = src;
   }
 
-  let images = ['peck.jpg', 'cruise.jpg', 'whale.jpg'];
   useEffect(() => {
     setSize(window.innerWidth);
-    // setSize(898);
-    initImage(images[Math.floor(Math.random() * images.length)]);
+    initImage(default_image[0]);
+  }, [kickoff]);
+
+  useEffect(() => {
+    if (window.innerWidth < 600) {
+      setText(short_text);
+    }
+    setTimeout(() => {
+      setKickoff(true);
+    }, 0);
   }, []);
 
   useEffect(() => {
@@ -235,7 +272,7 @@ const Home = img => {
   }
 
   function clickKey(key) {
-    keyAction(key, false);
+    keyAction({ key: key });
   }
 
   function setSize(width) {
@@ -286,11 +323,6 @@ const Home = img => {
 
   return (
     <div>
-      <Head>
-        <title>Diptych</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
       <div
         ref={containerref}
         style={{
@@ -397,7 +429,13 @@ const Home = img => {
       />
 
       <div style={{ fontFamily: 'customono', fontSize: mfs, lineHeight: lh }}>
-        <Info rlh={mrlh} help={help} mode={mode} clickKey={clickKey} />
+        <Info
+          rlh={mrlh}
+          help={help}
+          mode={mode}
+          clickKey={clickKey}
+          image_info={default_image}
+        />
       </div>
 
       <style global jsx>{`

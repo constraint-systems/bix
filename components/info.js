@@ -125,7 +125,7 @@ let Relevant = ({ mode, clickKey }) => {
   }
 };
 
-export default ({ rlh, mode, help, clickKey }) => {
+export default ({ rlh, mode, help, clickKey, image_info }) => {
   return (
     <div>
       <div
@@ -186,6 +186,10 @@ export default ({ rlh, mode, help, clickKey }) => {
             items={[['w', 'save diptych as png'], ['?', 'help']]}
           />
         </div>
+        <div>
+          <a href={image_info[2]}>Default image {image_info[1]}</a>
+        </div>
+
         <div>
           <a href="https://github.com/constraint-systems/diptych">
             View source
