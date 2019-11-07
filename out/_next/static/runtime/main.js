@@ -5119,7 +5119,7 @@ function connect(options) {
       error.name = err.name;
       error.stack = err.stack; // __NEXT_DIST_DIR is provided by webpack
 
-      (0, _sourceMapSupport.rewriteStacktrace)(error, "/Users/grant.custer/Sites/constraint-systems/whale/.next");
+      (0, _sourceMapSupport.rewriteStacktrace)(error, "/Users/grant.custer/Sites/constraint-systems/diptych/.next");
       return error;
     }
   };
