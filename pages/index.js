@@ -102,6 +102,7 @@ const Home = img => {
   let readoutref = useRef(null);
   let tref = useRef(null);
   let imgref = useRef(null);
+  let dref = useRef(null);
   let textarearef = useRef(null);
   let [text, setText] = useState(plain_text);
   let [help, setHelp] = useState(true);
@@ -143,6 +144,8 @@ const Home = img => {
     rtx.fillRect(0, 0, r.width, r.height);
     rtx.putImageData(new_pixels, ch * 2, rlh);
 
+    // rtx.imageSmoothingEnabled = false;
+
     rtx.font = `${fs}px/${lh} custom`;
     rtx.textBaseline = 'middle';
     rtx.fillStyle = 'black';
@@ -161,6 +164,33 @@ const Home = img => {
       1000})  source: ${sw}x${sh}  target: ${aw}x${ah} (${Math.round(
       (aw / ah) * 1000
     ) / 1000})`;
+
+    // {
+    //   let d = dref.current;
+    //   d.width = aw * 2;
+    //   d.height = ah * 2;
+    //   d.style.width = aw + 'px';
+    //   d.style.height = ah + 'px';
+    //   let dtx = d.getContext('2d');
+    //   dtx.font = `${fs}px/${lh} custom`;
+    //   dtx.textBaseline = 'middle';
+    //   dtx.scale(2, 2);
+    //   dtx.fillStyle = 'white';
+    //   dtx.fillRect(0, 0, aw, ah);
+    //   dtx.fillStyle = 'black';
+    //   let height = wrapText(
+    //     dtx,
+    //     text,
+    //     0,
+    //     rlh + rlh / 2 + 2,
+    //     aw + ch / 2,
+    //     fs * lh
+    //   );
+    //   d.style.display = 'none';
+    //   rtx.fillStyle = 'white';
+    //   rtx.fillRect(0, 0, aw, ah);
+    //   rtx.drawImage(d, 0, 0, aw * 2, ah * 2, 0, 0, aw, ah);
+    // }
   }
 
   function initImage(src, callback) {
@@ -193,14 +223,14 @@ const Home = img => {
   function keyAction(e) {
     let key = e.key.toLowerCase();
     let shift = e.shiftKey;
-    let inc = 1;
-    if (shift) inc = 10;
-    if (key === 'h') {
+    let inc = 10;
+    if (shift) inc = 1;
+    if (key === 'h' || key === 'arrowleft') {
       let next = wwref.current - inc;
       if (next < 10) next = 10;
       setSize(next);
       respond();
-    } else if (key === 'l') {
+    } else if (key === 'l' || key === 'arrowright') {
       let next = wwref.current + inc;
       setSize(next);
       respond();
@@ -322,7 +352,7 @@ const Home = img => {
   }, [text]);
 
   return (
-    <div>
+    <div className="diptych-container">
       <div
         ref={containerref}
         style={{
@@ -342,10 +372,19 @@ const Home = img => {
         <canvas
           style={{
             position: 'absolute',
+            position: 'absolute',
             left: 0,
             top: 0,
           }}
           ref={rref}
+        />
+        <canvas
+          ref={dref}
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+          }}
         />
 
         <div />
@@ -487,12 +526,23 @@ const Home = img => {
         a {
           color: inherit;
         }
+        a:hover {
+          opacity: 0.8;
+        }
         textarea {
           background: white;
         }
         textarea:focus {
           background: #efefef;
           outline: none;
+        }
+        @media (max-width: 800px) {
+          .help {
+            max-height: calc(50vh - ${rlh * 2}px);
+          }
+          .diptych-container {
+            padding-bottom: 50vh;
+          }
         }
       `}</style>
     </div>
