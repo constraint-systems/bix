@@ -7,7 +7,7 @@ class MyDocument extends Document {
   }
 
   render() {
-    let title = 'Diptych';
+    let title = 'Byte-tych';
     let description =
       'Pixel-reflow an image to match the dimensions of your text. Save the result as a diptych.';
     return (

@@ -1,482 +1,439 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Info from '../components/info';
+import { short_text } from '../components/constants';
+import {
+  pInline,
+  pBlock,
+  convertStringToBytes,
+  convertBytesToText,
+  reverseString,
+} from '../components/utilities';
 
 let fs = 16;
 let lh = 1.5;
+// let lh = 1.1999988555908203;
 let rlh = fs * lh;
-// measured
-let cr = 8.4 / 21;
-let ch = cr * rlh;
 
-let mfs = 14;
-let mrlh = mfs * lh;
+let bs = 6;
+let byte_cols = 1;
+let byte_rows = 8;
+let byte_width = byte_cols * bs;
+let byte_height = byte_rows * bs;
 
-function wrapText(context, text, x, y, maxWidth, lineHeight) {
-  // from https://codepen.io/peterhry/pen/AGIEa
-  // modified to respect line breaks
-  let ogx = x;
-  let ogy = y;
-  let paragraphs = text.split('\n');
-  let height = 0;
-  for (let p = 0; p < paragraphs.length; p++) {
-    let text = paragraphs[p];
-    var words = text.split(' '),
-      line = '',
-      lineCount = 0,
-      i,
-      test,
-      metrics;
+let Index = () => {
+  let [text, _setText] = useState(short_text);
+  let [display_text, setDisplayText] = useState(short_text);
+  let textarea_ref = useRef(null);
+  let textdiv_ref = useRef(null);
+  let canvas_ref = useRef(null);
+  let canvas_overlay_ref = useRef(null);
+  let container_ref = useRef(null);
+  let cursor_ref = useRef([0, 0, bs, bs]);
+  let keymap_ref = useRef({});
+  let byte_holder_ref = useRef([0, 0]);
+  let offset_ref = useRef([0, 0]);
+  let readout_ref = useRef(null);
 
-    for (i = 0; i < words.length; i++) {
-      test = words[i];
-      metrics = context.measureText(test);
-      while (metrics.width >= maxWidth) {
-        // Determine how much of the word will fit
-        test = test.substring(0, test.length - 1);
-        metrics = context.measureText(test);
-      }
-      if (words[i] != test) {
-        words.splice(i + 1, 0, words[i].substr(test.length));
-        words[i] = test;
-      }
-
-      test = line + words[i] + ' ';
-      metrics = context.measureText(test);
-
-      if (metrics.width >= maxWidth && i > 0) {
-        context.fillText(line, x, y);
-        line = words[i] + ' ';
-        y += lineHeight;
-        lineCount++;
-      } else {
-        line = test;
-      }
-    }
-    context.fillText(line, x, y);
-    y += lineHeight;
-    height += lineHeight;
+  function setText(new_text) {
+    if (new_text.length === 0) new_text = ' ';
+    _setText(new_text);
   }
-  // context.fillStyle = 'red';
-  // context.fillRect(ogx, ogy, maxWidth, height);
-  return height;
-}
 
-let images = [
-  ['beach.jpg', 'by José Duarte', 'https://unsplash.com/photos/DuholBfUUCY'],
-  // [
-  //   'illustration.jpg',
-  //   'by Rockwell Kent',
-  //   'https://www.apollo-magazine.com/herman-melville-moby-dick-artists-illustrators/',
-  // ],
-  [
-    'peck.jpg',
-    'from Moby Dick (1956 film)',
-    'https://en.wikipedia.org/wiki/Moby_Dick_(1956_film)',
-  ],
-  [
-    'whale-jump.jpg',
-    'by Thomas Kelley',
-    'https://unsplash.com/photos/t20pc32VbrU',
-  ],
-  [
-    'whale-tail.jpg',
-    'by Iswanto Arif',
-    'https://unsplash.com/photos/VziuvwpGatM',
-  ],
-];
-let plain_text = `CHAPTER 1. Loomings.
+  function changeBit(val) {
+    let cursor = cursor_ref.current;
+    let byte_holder = byte_holder_ref.current;
 
-Call me Ishmael. Some years ago — never mind how long precisely — having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. It is a way I have of driving off the spleen and regulating the circulation. Whenever I find myself growing grim about the mouth; whenever it is a damp, drizzly November in my soul; whenever I find myself involuntarily pausing before coffin warehouses, and bringing up the rear of every funeral I meet; and especially whenever my hypos get such an upper hand of me, that it requires a strong moral principle to prevent me from deliberately stepping into the street, and methodically knocking people’s hats off — then, I account it high time to get to sea as soon as I can. This is my substitute for pistol and ball.  With a philosophical flourish Cato throws himself upon his sword; I quietly take to the ship. There is nothing surprising in this. If they but knew it, almost all men in their degree, some time or other, cherish very nearly the same feelings towards the ocean with me.
+    let bytes = convertStringToBytes(text);
 
-There now is your insular city of the Manhattoes, belted round by wharves as Indian isles by coral reefs — commerce surrounds it with her surf. Right and left, the streets take you waterward. Its extreme downtown is the battery, where that noble mole is washed by waves, and cooled by breezes, which a few hours previous were out of sight of land. Look at the crowds of water-gazers there.`;
+    let byte_x = Math.floor(cursor[0] / (byte_cols * bs));
+    let byte_y = Math.floor(cursor[1] / (byte_rows * bs));
 
-let short_text = `CHAPTER 1. Loomings.
+    let byte_index = byte_y * byte_holder[0] + byte_x;
 
-Call me Ishmael. Some years ago — never mind how long precisely — having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. It is a way I have of driving off the spleen and regulating the circulation.`;
+    let bit_x = (cursor[0] - byte_x * byte_cols * bs) / bs;
+    let bit_y = (cursor[1] - byte_y * byte_rows * bs) / bs;
 
-const Home = img => {
-  let rref = useRef(null);
-  let targetref = useRef(null);
-  let wwref = useRef(null);
-  let containerref = useRef(null);
-  let readoutref = useRef(null);
-  let tref = useRef(null);
-  let imgref = useRef(null);
-  let dref = useRef(null);
-  let textarearef = useRef(null);
-  let [text, setText] = useState(plain_text);
-  let [help, setHelp] = useState(true);
-  let [mode, setMode] = useState('default');
-  let [default_image] = useState(
-    images[Math.floor(Math.random() * (images.length - 1))]
-  );
-  let [kickoff, setKickoff] = useState(false);
+    let bit_index = bit_y * byte_cols + bit_x;
 
-  function respond() {
-    let aw = tref.current.offsetWidth;
-    let ah = tref.current.offsetHeight;
-    let area = aw * ah;
+    let bexpand = bytes[byte_index].split('');
+    let current_bit = bexpand[bit_index];
+    let new_bit;
+    if (val === 'f') {
+      new_bit = 1 - current_bit;
+    } else {
+      new_bit = val;
+    }
 
-    let img = imgref.current;
-    let iw = img.width;
-    let ih = img.height;
+    if (current_bit !== new_bit.toString()) {
+      bexpand[bit_index] = new_bit.toString();
+      let bcontract = bexpand.join('');
 
-    let ratio = iw / ih;
-    let sw = Math.floor(Math.sqrt(area * ratio));
-    let sh = Math.floor(area / sw);
+      bytes[byte_index] = bcontract;
 
-    let source = document.createElement('canvas');
-    source.width = sw;
-    source.height = sh;
-    let stx = source.getContext('2d');
-    stx.drawImage(img, 0, 0, sw, sh);
+      let new_text = convertBytesToText(bytes);
+      setText(new_text);
+    } else {
+      move();
+    }
+  }
 
-    let pixels = stx.getImageData(0, 0, sw, sh);
+  function mathByte(operation) {
+    let cursor = cursor_ref.current;
+    let byte_holder = byte_holder_ref.current;
 
-    let r = rref.current;
-    let rtx = r.getContext('2d');
-    let new_pixels = rtx.createImageData(aw, ah);
-    new_pixels.data.set(pixels.data);
-    r.width = wwref.current;
-    r.height = ah + rlh * 2;
+    let bytes = convertStringToBytes(text);
 
-    rtx.fillStyle = 'white';
-    rtx.fillRect(0, 0, r.width, r.height);
-    rtx.putImageData(new_pixels, ch * 2, rlh);
+    let byte_x = Math.floor(cursor[0] / (byte_cols * bs));
+    let byte_y = Math.floor(cursor[1] / (byte_rows * bs));
 
-    // rtx.imageSmoothingEnabled = false;
+    let byte_index = byte_y * byte_holder[0] + byte_x;
+    let byte = reverseString(bytes[byte_index]);
 
-    rtx.font = `${fs}px/${lh} custom`;
-    rtx.textBaseline = 'middle';
-    rtx.fillStyle = 'black';
-    let height = wrapText(
-      rtx,
-      text,
-      r.width - ch * 2 - aw,
-      rlh + rlh / 2 + 2,
-      aw + ch / 2,
-      fs * lh
+    let min = parseInt('00000000', 2);
+    let max = parseInt('11111111', 2);
+
+    let new_byte;
+    if (operation === 'subtract') {
+      new_byte = parseInt(byte, 2) - 1;
+    } else {
+      new_byte = parseInt(byte, 2) + 1;
+    }
+
+    if (new_byte < min) new_byte = min;
+    if (new_byte > max) new_byte = max;
+
+    bytes[byte_index] = reverseString(new_byte.toString(2));
+
+    let new_text = convertBytesToText(bytes);
+    setText(new_text);
+  }
+
+  function move() {
+    let textdiv = textdiv_ref.current;
+    let cursor = cursor_ref.current;
+    let byte_holder = byte_holder_ref.current;
+    let offset = offset_ref.current;
+    let readout = readout_ref.current;
+
+    let bytes = convertStringToBytes(text);
+
+    let overlay = canvas_overlay_ref.current;
+    let otx = overlay.getContext('2d');
+
+    let offset_x = offset[0];
+    let offset_y = offset[1];
+
+    let byte_holder_cols = byte_holder[0];
+    let byte_holder_rows = byte_holder[1];
+
+    let byte_holder_width = byte_holder_cols * byte_cols * bs;
+    let byte_holder_height = byte_holder_rows * byte_rows * bs;
+
+    overlay.width = byte_holder_width + offset_x * 2;
+    overlay.height = byte_holder_height + offset_y * 2;
+
+    otx.clearRect(0, 0, overlay.width, overlay.height);
+    otx.strokeStyle = '#888';
+    otx.lineWidth = 1;
+    for (let i = 0; i < bytes.length; i++) {
+      let x = (i % byte_holder_cols) * byte_cols * bs + offset_x;
+      let y = Math.floor(i / byte_holder_cols) * byte_rows * bs + offset_y;
+      // otx.strokeRect(x, y, byte_cols * bs, byte_rows * bs);
+    }
+
+    let byte_index =
+      Math.floor(cursor[1] / byte_height) * byte_holder_cols +
+      Math.floor(cursor[0] / byte_width);
+    let byte_x = (byte_index % byte_holder_cols) * byte_cols * bs;
+    let byte_y = Math.floor(byte_index / byte_holder_cols) * byte_rows * bs;
+
+    let bit_x = (cursor[0] - byte_x) / bs;
+    let bit_y = (cursor[1] - byte_y) / bs;
+
+    let bit_index = bit_y * byte_cols + bit_x;
+
+    // clean up byte index if it is outside the bounds
+    if (byte_index > bytes.length - 1) {
+      let last_byte_index = bytes.length - 1;
+      byte_index = last_byte_index;
+      byte_x = (last_byte_index % byte_holder[0]) * byte_cols * bs;
+      byte_y = Math.floor(last_byte_index / byte_holder[0]) * byte_rows * bs;
+      cursor[0] = byte_x + bit_x * bs;
+      cursor[1] = byte_y + bit_y * bs;
+    }
+
+    otx.strokeStyle = 'cyan';
+    otx.lineWidth = 2;
+    otx.strokeRect(
+      byte_x - 1 + offset_x,
+      byte_y - 1 + offset_y,
+      byte_cols * bs + 2,
+      byte_rows * bs + 2
     );
 
-    readoutref.current.innerHTML = `width: ${
-      wwref.current
-    }  image: ${iw}x${ih} (${Math.round((iw / ih) * 1000) /
-      1000})  source: ${sw}x${sh}  target: ${aw}x${ah} (${Math.round(
-      (aw / ah) * 1000
-    ) / 1000})`;
+    otx.strokeStyle = 'magenta';
+    otx.lineWidth = 2;
+    otx.strokeRect(
+      cursor[0] - 1 + offset_x,
+      cursor[1] - 1 + offset_y,
+      bs + 2,
+      bs + 2
+    );
 
-    // {
-    //   let d = dref.current;
-    //   d.width = aw * 2;
-    //   d.height = ah * 2;
-    //   d.style.width = aw + 'px';
-    //   d.style.height = ah + 'px';
-    //   let dtx = d.getContext('2d');
-    //   dtx.font = `${fs}px/${lh} custom`;
-    //   dtx.textBaseline = 'middle';
-    //   dtx.scale(2, 2);
-    //   dtx.fillStyle = 'white';
-    //   dtx.fillRect(0, 0, aw, ah);
-    //   dtx.fillStyle = 'black';
-    //   let height = wrapText(
-    //     dtx,
-    //     text,
-    //     0,
-    //     rlh + rlh / 2 + 2,
-    //     aw + ch / 2,
-    //     fs * lh
-    //   );
-    //   d.style.display = 'none';
-    //   rtx.fillStyle = 'white';
-    //   rtx.fillRect(0, 0, aw, ah);
-    //   rtx.drawImage(d, 0, 0, aw * 2, ah * 2, 0, 0, aw, ah);
-    // }
+    let display_text = text.slice();
+    let display_array = display_text.split('');
+    display_array[byte_index] =
+      '<span style="background: cyan">' + display_array[byte_index] + '</span>';
+    let new_text = display_array.join('');
+    setDisplayText(new_text);
+
+    let bit_readout = reverseString(bytes[byte_index])
+      .split('')
+      .map((b, i) => {
+        if (bit_index === 7 - i) {
+          return `<span style="background: magenta;">${b}</span>`;
+        } else {
+          return b;
+        }
+      })
+      .join('');
+    readout.innerHTML = `Byte ${byte_index
+      .toString()
+      .padStart(bytes.length.toString().length, '0')}: ${bit_readout}`;
   }
 
-  function initImage(src, callback) {
-    let img = new Image();
-    img.onload = () => {
-      imgref.current = img;
-      respond();
-    };
-    img.src = src;
-  }
+  function respond() {
+    let textdiv = textdiv_ref.current;
+    let container = container_ref.current;
 
-  useEffect(() => {
-    setSize(window.innerWidth);
-    initImage(default_image[0]);
-  }, [kickoff]);
+    let canvas = canvas_ref.current;
+    canvas.width = window.innerWidth;
+    let ctx = canvas.getContext('2d');
 
-  useEffect(() => {
-    if (window.innerWidth < 600) {
-      setText(short_text);
+    ctx.font = `${fs}px/${lh} customono`;
+    let ch = ctx.measureText('w').width;
+
+    let offset_x = ch * 2;
+    let offset_y = rlh;
+    offset_ref.current = [offset_x, offset_y];
+
+    let bytes = convertStringToBytes(text);
+
+    let byte_width = byte_cols * bs;
+    let byte_height = byte_rows * bs;
+
+    let byte_holder_cols = Math.floor(textdiv.offsetWidth / byte_width);
+    let byte_holder_rows = Math.ceil(bytes.length / byte_holder_cols);
+    byte_holder_ref.current = [byte_holder_cols, Math.max(1, byte_holder_rows)];
+
+    let byte_holder_width = byte_holder_cols * byte_cols * bs;
+    let byte_holder_height = byte_holder_rows * byte_rows * bs;
+
+    canvas.width = window.innerWidth;
+    canvas.height = byte_holder_height + rlh * 2;
+    if (byte_holder_height > textdiv.offsetHeight) {
+      container.style.height = byte_holder_height + rlh * 2 + 'px';
+    } else {
+      container.style.height = 'auto';
     }
-    setTimeout(() => {
-      setKickoff(true);
-    }, 0);
-  }, []);
+
+    for (let byr = 0; byr < byte_holder_rows; byr++) {
+      for (let byc = 0; byc < byte_holder_cols; byc++) {
+        let byte_index = byr * byte_holder_cols + byc;
+        let byte = bytes[byte_index];
+        if (byte !== undefined) {
+          for (let br = 0; br < byte_rows; br++) {
+            for (let bc = 0; bc < byte_cols; bc++) {
+              let bit = byte.split('')[br * byte_cols + bc];
+              if (bit === '1') {
+                let x = byc * byte_cols * bs + bc * bs + offset_x;
+                let y = byr * byte_rows * bs + br * bs + offset_y;
+                ctx.fillRect(x, y, bs, bs);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function handleText(value) {
+    setText(value);
+  }
+
+  function keyAction(key, repeat) {
+    let km = keymap_ref.current;
+    let cursor = cursor_ref.current;
+    let x_inc = bs;
+    let y_inc = bs;
+    let byte_holder = byte_holder_ref.current;
+
+    let bytes = convertStringToBytes(text);
+    let byte_index =
+      Math.floor(cursor[1] / byte_height) * byte_holder[0] +
+      Math.floor(cursor[0] / byte_width);
+    let byte_x = (byte_index % byte_holder[0]) * byte_cols * bs;
+    let byte_y = Math.floor(byte_index / byte_holder[0]) * byte_rows * bs;
+
+    let prev_cursor = cursor.slice();
+
+    let bit_x = (cursor[0] - byte_x) / bs;
+    let bit_y = (cursor[1] - byte_y) / bs;
+
+    let bit_index = bit_y * byte_cols + bit_x;
+
+    if (km['j']) cursor[1] += y_inc;
+    if (km['k']) cursor[1] -= y_inc;
+    if (km['h']) cursor[0] -= x_inc;
+    if (km['l']) cursor[0] += x_inc;
+
+    let new_byte_index =
+      Math.floor(cursor[1] / byte_height) * byte_holder[0] +
+      Math.floor(cursor[0] / byte_width);
+
+    if (new_byte_index > bytes.length - 1) {
+      if (cursor[0] > prev_cursor[0]) {
+        cursor[0] = prev_cursor[0];
+      }
+      if (cursor[1] > prev_cursor[1]) {
+        cursor[1] = prev_cursor[1];
+      }
+    } else {
+      if (cursor[0] + cursor[2] > byte_holder[0] * bs) {
+        if (bytes[byte_index + 1] !== undefined) {
+          cursor[0] = 0;
+          cursor[1] += 8 * bs;
+        }
+      }
+      if (cursor[0] < 0) {
+        if (byte_index === 0) {
+          cursor[0] = 0;
+        } else {
+          cursor[0] = byte_holder[0] * byte_cols * bs - cursor[2];
+          cursor[1] -= 8 * bs;
+        }
+      }
+      if (cursor[1] < 0) {
+        cursor[1] = 0;
+      }
+    }
+
+    let bit_changed = false;
+    if ((key === 'f' && !repeat) || (km['f'] && key !== 'f')) {
+      bit_changed = true;
+      changeBit('f');
+    } else if (km['d'] && !(key === 'd' && repeat)) {
+      bit_changed = true;
+      changeBit(1);
+    } else if (km['e'] && !(key === 'e' && repeat)) {
+      bit_changed = true;
+      changeBit(0);
+    }
+
+    if (km['a'] && !(key === 'a' && repeat)) {
+      bit_changed = true;
+      mathByte('add');
+    } else if (km['s'] && !(key === 's' && repeat)) {
+      bit_changed = true;
+      mathByte('subtract');
+    }
+
+    if (!bit_changed) move();
+  }
 
   useEffect(() => {
-    if (imgref.current !== null) respond();
+    respond();
+    move();
   }, [text]);
 
-  function keyAction(e) {
+  useEffect(() => {
+    respond();
+    move();
+  }, []);
+
+  function downHandler(e) {
     let key = e.key.toLowerCase();
-    let shift = e.shiftKey;
-    let inc = 10;
-    if (shift) inc = 1;
-    if (key === 'h' || key === 'arrowleft') {
-      let next = wwref.current - inc;
-      if (next < 10) next = 10;
-      setSize(next);
-      respond();
-    } else if (key === 'l' || key === 'arrowright') {
-      let next = wwref.current + inc;
-      setSize(next);
-      respond();
-    } else if (key === 'o') {
-      let input = document.createElement('input');
-      input.setAttribute('type', 'file');
-      input.dispatchEvent(
-        new MouseEvent(`click`, {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-        })
-      );
-
-      function handleChange(e) {
-        for (const item of this.files) {
-          if (item.type.indexOf('image') < 0) {
-            continue;
-          }
-          let src = URL.createObjectURL(item);
-          initImage(src);
-        }
-        this.removeEventListener('change', handleChange);
-      }
-      input.addEventListener('change', handleChange);
-    } else if (key === 'w') {
-      let link = document.createElement('a');
-
-      var revokeURL = function() {
-        let me = this;
-        requestAnimationFrame(function() {
-          URL.revokeObjectURL(me.href);
-          me.href = null;
-        });
-        this.removeEventListener('click', revokeURL);
-      };
-
-      rref.current.toBlob(function(blob) {
-        link.setAttribute(
-          'download',
-          `diptych-${new Date()
-            .toISOString()
-            .slice(0, -4)
-            .replace(/-/g, '')
-            .replace(/:/g, '')
-            .replace(/_/g, '')
-            .replace(/\./g, '')}Z.png`
-        );
-        link.setAttribute('href', URL.createObjectURL(blob));
-        link.addEventListener('click', revokeURL);
-        link.dispatchEvent(
-          new MouseEvent(`click`, {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-          })
-        );
-      });
-    } else if (key === 'e') {
-      textarearef.current.focus();
-      let t = textarearef.current;
-      t.selectionStart = t.selectionEnd = t.value.length;
-      e.preventDefault();
-    } else if (key === '?') {
-      setHelp(prevState => {
-        return !prevState;
-      });
-    }
+    keymap_ref.current[key] = true;
+    keyAction(key, e.repeat);
   }
 
-  function clickKey(key) {
-    keyAction({ key: key });
-  }
-
-  function setSize(width) {
-    wwref.current = width;
-    containerref.current.style.width = width + 'px';
-  }
-
-  function onPaste(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    for (const item of e.clipboardData.items) {
-      if (item.type.indexOf('image') < 0) {
-        continue;
-      }
-      let file = item.getAsFile();
-      let src = URL.createObjectURL(file);
-      initImage(src);
-    }
-  }
-
-  function onDrag(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  }
-
-  function onDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    let file = e.dataTransfer.files[0];
-    let filename = file.path ? file.path : file.name ? file.name : '';
-    let src = URL.createObjectURL(file);
-    initImage(src);
+  function upHandler(e) {
+    let key = e.key.toLowerCase();
+    keymap_ref.current[key] = false;
   }
 
   useEffect(() => {
-    window.addEventListener('keydown', keyAction);
-    window.addEventListener('paste', onPaste, false);
-    window.addEventListener('dragover', onDrag, false);
-    window.addEventListener('drop', onDrop, false);
+    window.addEventListener('keydown', downHandler);
+    window.addEventListener('keyup', upHandler);
     return () => {
-      window.removeEventListener('keydown', keyAction);
-      window.removeEventListener('paste', onPaste);
-      window.removeEventListener('dragover', onDrag, false);
-      window.removeEventListener('drop', onDrop, false);
+      window.removeEventListener('keydown', downHandler);
+      window.removeEventListener('keyup', upHandler);
     };
   }, [text]);
 
   return (
-    <div className="diptych-container">
-      <div
-        ref={containerref}
-        style={{
-          display: 'grid',
-          // gridTemplateColumns: `repeat(2, ${68 * ch}px)`,
-          gridTemplateColumns: `repeat(2, 1fr)`,
-          paddingLeft: '2ch',
-          paddingRight: '2ch',
-          paddingTop: rlh,
-          paddingBottom: rlh,
-          gridColumnGap: '3ch',
-          // width: ch * (68 * 2 + 2 * 2 + 3),
-          // background: 'green',
-          background: 'white',
-        }}
-      >
+    <div>
+      <div ref={container_ref} style={{ background: 'white' }}>
         <canvas
-          style={{
-            position: 'absolute',
-            position: 'absolute',
-            left: 0,
-            top: 0,
-          }}
-          ref={rref}
+          style={{ position: 'absolute', left: 0, top: 0 }}
+          ref={canvas_ref}
         />
         <canvas
-          ref={dref}
-          style={{
-            position: 'fixed',
-            left: 0,
-            top: 0,
-          }}
+          style={{ position: 'absolute', left: 0, top: 0 }}
+          ref={canvas_overlay_ref}
         />
-
-        <div />
-        <div style={{ position: 'relative' }}>
-          <div
-            ref={tref}
-            style={{
-              position: 'relative',
-              whiteSpace: 'pre-wrap',
-              pointerEvents: 'none',
-              background: 'white',
-              // background: 'rgba(0,255,0,0.2)',
-            }}
-          >
-            {text}​
+        <div
+          style={{
+            display: 'grid',
+            ...pInline('2ch'),
+            ...pBlock(rlh),
+            gridTemplateColumns: '1fr 1fr',
+            gridColumnGap: '2ch',
+          }}
+        >
+          <div />
+          <div style={{ position: 'relative' }}>
+            <div
+              ref={textdiv_ref}
+              style={{
+                color: 'transparent',
+                position: 'relative',
+                width: '100%',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                pointerEvents: 'none',
+              }}
+              dangerouslySetInnerHTML={{ __html: display_text + '​' }}
+            />
+            <textarea
+              onKeyDown={e => {
+                if (e.key === 'Escape') e.target.blur();
+                if (e.shiftKey && e.key === 'Enter') e.target.blur();
+                e.stopPropagation();
+              }}
+              onChange={e => {
+                handleText(e.target.value);
+              }}
+              ref={textarea_ref}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: '100%',
+                height: '100%',
+                resize: 'none',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+              spellCheck="false"
+              value={text}
+            />
           </div>
-          <textarea
-            ref={textarearef}
-            style={{
-              display: 'block',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              lineHeight: 'inherit',
-              border: 'none',
-              padding: 0,
-              margin: 0,
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: '100%',
-              resize: 'none',
-            }}
-            onPaste={e => {
-              e.stopPropagation();
-            }}
-            onFocus={e => {
-              setMode('editing');
-            }}
-            onBlur={e => {
-              setMode('default');
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Escape') e.target.blur();
-              if (e.shiftKey && e.key === 'Enter') e.target.blur();
-              e.stopPropagation();
-            }}
-            onChange={e => {
-              setText(e.target.value);
-            }}
-            value={text}
-            spellCheck="false"
-          />
         </div>
       </div>
-
       <div
-        style={{
-          paddingLeft: '2ch',
-          paddingRight: '2ch',
-          paddingTop: rlh / 2,
-          paddingBottom: rlh / 2,
-          whiteSpace: 'pre-wrap',
-          fontFamily: 'customono',
-          fontSize: mfs,
-          lineHeight: lh,
-        }}
-        ref={readoutref}
+        style={{ ...pInline('2ch'), ...pBlock(rlh / 2) }}
+        ref={readout_ref}
       />
-
-      <div
-        style={{
-          position: 'fixed',
-          right: '2ch',
-          bottom: '2ch',
-          paddingLeft: '1ch',
-          paddingRight: '1ch',
-          paddingTop: rlh / 2,
-          paddingBottom: rlh / 2,
-        }}
-      />
-
-      <div style={{ fontFamily: 'customono', fontSize: mfs, lineHeight: lh }}>
-        <Info
-          rlh={mrlh}
-          help={help}
-          mode={mode}
-          clickKey={clickKey}
-          image_info={default_image}
-        />
-      </div>
-
       <style global jsx>{`
         @font-face {
           font-family: 'custom';
@@ -492,7 +449,7 @@ const Home = img => {
           box-sizing: border-box;
         }
         html {
-          font-family: 'custom', sans-serif;
+          font-family: 'customono', sans-serif;
           font-size: ${fs}px;
           line-height: ${lh};
           background: #ddd;
@@ -530,11 +487,18 @@ const Home = img => {
           opacity: 0.8;
         }
         textarea {
-          background: white;
+          border: none;
+          margin: 0;
+          font-size: inherit;
+          padding: 0;
+          line-height: inherit;
+          font-weight: normal;
+          font: inherit;
+          background: transparent;
         }
         textarea:focus {
-          background: #efefef;
           outline: none;
+          background: rgba(0, 0, 0, 0.125);
         }
         @media (max-width: 800px) {
           .help {
@@ -544,9 +508,12 @@ const Home = img => {
             padding-bottom: 50vh;
           }
         }
+        #__next-prerender-indicator {
+          display: none;
+        }
       `}</style>
     </div>
   );
 };
 
-export default Home;
+export default Index;

@@ -125,7 +125,7 @@ let Relevant = ({ mode, clickKey }) => {
   }
 };
 
-export default ({ rlh, mode, help, clickKey, image_info }) => {
+export default ({ rlh, mode, help, clickKey }) => {
   return (
     <div>
       <div
@@ -187,15 +187,6 @@ export default ({ rlh, mode, help, clickKey, image_info }) => {
             clickKey={clickKey}
             items={[['w', 'save diptych as png'], ['?', 'toggle help']]}
           />
-        </div>
-        <div>
-          <a href={image_info[2]}>Default image {image_info[1]}.</a>
-        </div>
-        <div>
-          <a href="https://frankchimero.com/writing/the-webs-grain/">
-            Inspired by Frank Chimero saying the foundational responsive design
-            challenge is the difference between image and text reflow.
-          </a>
         </div>
         <div>
           <a href="https://github.com/constraint-systems/diptych">
