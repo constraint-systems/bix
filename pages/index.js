@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { short_text } from '../components/constants';
+// import { short_text } from '../components/constants';
+import Keycap from '../components/keycap';
 import {
   pInline,
   pBlock,
@@ -8,16 +9,31 @@ import {
   reverseString,
 } from '../components/utilities';
 
+let short_text = `Rachel: Can I ask you a personal question?
+Deckard: Sure.
+Rachel: Have you ever retired a human by mistake?
+Deckard: No.
+Rachel: But in your position that is a a risk.`;
+
 let fs = 16;
 let lh = 1.5;
 // let lh = 1.1999988555908203;
 let rlh = fs * lh;
+
+let keys_used = 'hjklfdeastw?';
+console.log('keys used: ', keys_used);
 
 let bs = 6;
 let byte_cols = 1;
 let byte_rows = 8;
 let byte_width = byte_cols * bs;
 let byte_height = byte_rows * bs;
+let red = '#fb4934';
+let green = '#b8bb26';
+let yellow = '#fab2f';
+let blue = '#83a598';
+let purple = '#d3869b';
+let aqua = '#8ec07c';
 
 let Index = () => {
   let [text, _setText] = useState(short_text);
@@ -161,7 +177,7 @@ let Index = () => {
       cursor[1] = byte_y + bit_y * bs;
     }
 
-    otx.strokeStyle = 'cyan';
+    otx.strokeStyle = red;
     otx.lineWidth = 2;
     otx.strokeRect(
       byte_x - 1 + offset_x,
@@ -170,7 +186,7 @@ let Index = () => {
       byte_rows * bs + 2
     );
 
-    otx.strokeStyle = 'magenta';
+    otx.strokeStyle = red;
     otx.lineWidth = 2;
     otx.strokeRect(
       cursor[0] - 1 + offset_x,
@@ -182,7 +198,9 @@ let Index = () => {
     let display_text = text.slice();
     let display_array = display_text.split('');
     display_array[byte_index] =
-      '<span style="background: cyan">' + display_array[byte_index] + '</span>';
+      `<span style="background: ${red}">` +
+      display_array[byte_index] +
+      '</span>';
     let new_text = display_array.join('');
     setDisplayText(new_text);
 
@@ -190,7 +208,7 @@ let Index = () => {
       .split('')
       .map((b, i) => {
         if (bit_index === 7 - i) {
-          return `<span style="background: magenta;">${b}</span>`;
+          return `<span style="background: ${red};">${b}</span>`;
         } else {
           return b;
         }
@@ -281,10 +299,11 @@ let Index = () => {
 
     let bit_index = bit_y * byte_cols + bit_x;
 
-    if (km['j']) cursor[1] += y_inc;
-    if (km['k']) cursor[1] -= y_inc;
     if (km['h']) cursor[0] -= x_inc;
     if (km['l']) cursor[0] += x_inc;
+
+    if (km['j']) cursor[1] += y_inc;
+    if (km['k']) cursor[1] -= y_inc;
 
     let new_byte_index =
       Math.floor(cursor[1] / byte_height) * byte_holder[0] +
@@ -434,6 +453,46 @@ let Index = () => {
         style={{ ...pInline('2ch'), ...pBlock(rlh / 2) }}
         ref={readout_ref}
       />
+      <div
+        style={{
+          position: 'fixed',
+          right: '2ch',
+          bottom: rlh,
+          ...pInline('2ch'),
+          ...pBlock(rlh / 2),
+          background: 'white',
+          outline: 'solid 1px black',
+          fontSize: 15,
+          lineHeight: 1.5,
+        }}
+      >
+        <div>Bix let's you draw on binary to glitch text.</div>
+        <div>MOVE</div>
+        <div
+          style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+        >
+          <Keycap k="h" label="previous byte" />
+          <Keycap k="j" label="next bit" />
+          <Keycap k="k" label="previous bit" />
+          <Keycap k="l" label="next byte" />
+        </div>
+        <div>EDIT BINARY</div>
+        <div
+          style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+        >
+          <Keycap k="d" label="draw" />
+          <Keycap k="e" label="erase" />
+          <Keycap k="f" label="flip" />
+          <Keycap k="a" label="add 1 to byte" />
+          <Keycap k="s" label="subtract 1 from byte" />
+        </div>
+        <div>SPECIAL</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          <Keycap k="t" label="edit text" />
+          <Keycap k="w" label="save as png" />
+          <Keycap k="?" label="toggle help" />
+        </div>
+      </div>
       <style global jsx>{`
         @font-face {
           font-family: 'custom';

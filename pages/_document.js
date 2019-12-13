@@ -7,13 +7,14 @@ class MyDocument extends Document {
   }
 
   render() {
-    let title = 'Byte-tych';
+    let title = 'Bix';
     let description =
       'Pixel-reflow an image to match the dimensions of your text. Save the result as a diptych.';
     return (
       <Html>
         <Head>
           <link rel="shortcut icon" href="/favicon.png" />
+          <meta charset="UTF-8" />
           <meta
             name="viewport"
             content="width=device-width,initial-scale=1,shrink-to-fit=no"
