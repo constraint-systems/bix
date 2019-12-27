@@ -1,5 +1,5 @@
 {
-  "name": "reorder",
+  "name": "Bix",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,7 @@
     "build": "next build",
     "export": "next export",
     "start": "next start",
-    "deploy": "next build && next export && touch out/.nojekyll && touch out/CNAME && echo \"diptych.constraint.systems\" >> out/CNAME && git add out/ && git commit -m \"Deploy to gh-pages\" && git subtree push --prefix out origin gh-pages"
+    "deploy": "next build && next export && touch out/.nojekyll && touch out/CNAME && echo \"bix.constraint.systems\" >> out/CNAME && git add out/ && git commit -m \"Deploy to gh-pages\" && git subtree push --prefix out origin gh-pages"
   },
   "dependencies": {
     "next": "9.1.2",

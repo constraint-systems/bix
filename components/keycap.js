@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-let Keycap = ({ k, label }) => {
+let Keycap = ({ k, label, clickKey }) => {
   return (
     <div
       style={{
-        marginRight: '2ch',
+              userSelect: 'none',
+              MozUserSelect: 'none'
+
       }}
     >
       <span
@@ -12,11 +14,13 @@ let Keycap = ({ k, label }) => {
           outline: 'solid 1px black',
           paddingLeft: '0.5ch',
           paddingRight: '0.5ch',
+          background: 'white',
+                cursor: 'default'
         }}
+              onClick={() => {clickKey(k)}}
       >
         {k}
-      </span>{' '}
-      {label}
+      </span>{label !== '' ? <span> <span style={{marginRight: '2ch'}}>{label}</span></span> : ''}
     </div>
   );
 };

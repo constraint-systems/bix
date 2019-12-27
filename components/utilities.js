@@ -23,6 +23,7 @@ export function convertCharToByte(char) {
 
 export function convertStringToBytes(string) {
   let chars = string.split('');
+  if (chars.length === 0) chars = [' '];
   let binary = chars.map(char => convertCharToByte(char));
   return binary;
 }

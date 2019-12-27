@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-// import { short_text } from '../components/constants';
+import { short_text } from '../components/constants';
 import Keycap from '../components/keycap';
 import {
   pInline,
@@ -9,19 +9,18 @@ import {
   reverseString,
 } from '../components/utilities';
 
-let short_text = `Rachel: Can I ask you a personal question?
-Deckard: Sure.
-Rachel: Have you ever retired a human by mistake?
-Deckard: No.
-Rachel: But in your position that is a a risk.`;
+// let short_text = `Rachel: Can I ask you a personal question?
+// Deckard: Sure.
+// Rachel: Have you ever retired a human by mistake?
+// Deckard: No.
+// Rachel: But in your position that is a risk.`;
 
 let fs = 16;
 let lh = 1.5;
 // let lh = 1.1999988555908203;
 let rlh = fs * lh;
 
-let keys_used = 'hjklfdeastw?';
-console.log('keys used: ', keys_used);
+let keys_used = 'hjklfdeastw?ui';
 
 let bs = 6;
 let byte_cols = 1;
@@ -36,7 +35,7 @@ let purple = '#d3869b';
 let aqua = '#8ec07c';
 
 let Index = () => {
-  let [text, _setText] = useState(short_text);
+  let [text, setText] = useState(short_text);
   let [display_text, setDisplayText] = useState(short_text);
   let textarea_ref = useRef(null);
   let textdiv_ref = useRef(null);
@@ -48,10 +47,22 @@ let Index = () => {
   let byte_holder_ref = useRef([0, 0]);
   let offset_ref = useRef([0, 0]);
   let readout_ref = useRef(null);
+  let width_ref = useRef();
+  // let [help, setHelp] = useState(true);
+  let [help, setHelp] = useState(true);
 
-  function setText(new_text) {
-    if (new_text.length === 0) new_text = ' ';
-    _setText(new_text);
+  function clickKey(key) {
+    let km = keymap_ref.current;
+    km[key] = true;
+    keyAction({ key }, false);
+    setTimeout(() => {
+      km[key] = false;
+    }, 0);
+  }
+
+  function setSize(width) {
+    width_ref.current = width;
+    container_ref.current.style.width = width + 'px';
   }
 
   function changeBit(val) {
@@ -177,7 +188,7 @@ let Index = () => {
       cursor[1] = byte_y + bit_y * bs;
     }
 
-    otx.strokeStyle = red;
+    otx.strokeStyle = blue;
     otx.lineWidth = 2;
     otx.strokeRect(
       byte_x - 1 + offset_x,
@@ -196,27 +207,32 @@ let Index = () => {
     );
 
     let display_text = text.slice();
+    if (display_text.length === 0) display_text = ' ';
     let display_array = display_text.split('');
     display_array[byte_index] =
-      `<span style="background: ${red}">` +
+      `<span style="background: ${blue}">` +
       display_array[byte_index] +
       '</span>';
     let new_text = display_array.join('');
     setDisplayText(new_text);
 
-    let bit_readout = reverseString(bytes[byte_index])
-      .split('')
-      .map((b, i) => {
-        if (bit_index === 7 - i) {
-          return `<span style="background: ${red};">${b}</span>`;
-        } else {
-          return b;
-        }
-      })
-      .join('');
-    readout.innerHTML = `Byte ${byte_index
-      .toString()
-      .padStart(bytes.length.toString().length, '0')}: ${bit_readout}`;
+    if (bytes[byte_index] !== undefined) {
+      let bit_readout = reverseString(bytes[byte_index])
+        .split('')
+
+        .map((b, i) => {
+          if (bit_index === 7 - i) {
+            return `<span style="background: ${red};">${b}</span>`;
+          } else {
+            return b;
+          }
+        })
+        .join('');
+      bit_readout += `  width: ${width_ref.current}`;
+      readout.innerHTML = `byte ${byte_index
+        .toString()
+        .padStart(bytes.length.toString().length, '0')}: ${bit_readout}`;
+    }
   }
 
   function respond() {
@@ -224,7 +240,7 @@ let Index = () => {
     let container = container_ref.current;
 
     let canvas = canvas_ref.current;
-    canvas.width = window.innerWidth;
+    canvas.width = width_ref.current;
     let ctx = canvas.getContext('2d');
 
     ctx.font = `${fs}px/${lh} customono`;
@@ -246,14 +262,19 @@ let Index = () => {
     let byte_holder_width = byte_holder_cols * byte_cols * bs;
     let byte_holder_height = byte_holder_rows * byte_rows * bs;
 
-    canvas.width = window.innerWidth;
+    canvas.width = byte_holder_width + ch * 4;
     canvas.height = byte_holder_height + rlh * 2;
     if (byte_holder_height > textdiv.offsetHeight) {
       container.style.height = byte_holder_height + rlh * 2 + 'px';
     } else {
-      container.style.height = 'auto';
+      canvas.height = textdiv.offsetHeight + rlh * 2;
+      container.style.height = textdiv.offsetHeight + rlh * 2 + 'px';
     }
 
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'black';
     for (let byr = 0; byr < byte_holder_rows; byr++) {
       for (let byc = 0; byc < byte_holder_cols; byc++) {
         let byte_index = byr * byte_holder_cols + byc;
@@ -278,7 +299,10 @@ let Index = () => {
     setText(value);
   }
 
-  function keyAction(key, repeat) {
+  function keyAction(e) {
+    let key = e.key.toLowerCase();
+    let repeat = e.repeat;
+
     let km = keymap_ref.current;
     let cursor = cursor_ref.current;
     let x_inc = bs;
@@ -340,23 +364,75 @@ let Index = () => {
     if ((key === 'f' && !repeat) || (km['f'] && key !== 'f')) {
       bit_changed = true;
       changeBit('f');
-    } else if (km['d'] && !(key === 'd' && repeat)) {
+    } else if (km['d']) {
       bit_changed = true;
       changeBit(1);
-    } else if (km['e'] && !(key === 'e' && repeat)) {
+    } else if (km['e']) {
       bit_changed = true;
       changeBit(0);
     }
 
-    if (km['a'] && !(key === 'a' && repeat)) {
+    let shift = e.shiftKey;
+    let inc = 10;
+    if (shift) inc = 1;
+    if (key === 'u' || key === 'arrowleft') {
+      let next = width_ref.current - inc;
+      if (next < 40) next = 40;
+      setSize(next);
+      respond();
+    } else if (key === 'i' || key === 'arrowright') {
+      let next = width_ref.current + inc;
+      setSize(next);
+      respond();
+    }
+
+    // if (km['a'] && !(key === 'a' && repeat)) {
+    if (km['a']) {
       bit_changed = true;
       mathByte('add');
-    } else if (km['s'] && !(key === 's' && repeat)) {
+      // } else if (km['s'] && !(key === 's' && repeat)) {
+    } else if (km['s']) {
       bit_changed = true;
       mathByte('subtract');
     }
 
     if (!bit_changed) move();
+
+    if (key === 't') {
+      textarea_ref.current.focus();
+      let t = textarea_ref.current;
+      t.selectionStart = t.selectionEnd = t.value.length;
+    } else if (key === 'w') {
+      let link = document.createElement('a');
+
+      link.setAttribute(
+        'href',
+        'data:text/plain;charset=utf-8,' + encodeURIComponent(text)
+      );
+      // TODO: set width
+      link.setAttribute(
+        'download',
+        `bix-width-${width_ref.current}-${new Date()
+          .toISOString()
+          .slice(0, -4)
+          .replace(/-/g, '')
+          .replace(/:/g, '')
+          .replace(/_/g, '')
+          .replace(/\./g, '')}Z.txt`
+      );
+
+      link.dispatchEvent(
+        new MouseEvent(`click`, {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        })
+      );
+    } else if (key === '?') {
+      setHelp(prevState => {
+        return !prevState;
+      });
+    }
   }
 
   useEffect(() => {
@@ -365,6 +441,7 @@ let Index = () => {
   }, [text]);
 
   useEffect(() => {
+    setSize(window.innerWidth);
     respond();
     move();
   }, []);
@@ -372,7 +449,8 @@ let Index = () => {
   function downHandler(e) {
     let key = e.key.toLowerCase();
     keymap_ref.current[key] = true;
-    keyAction(key, e.repeat);
+    keyAction(e);
+    if (key === 't') e.preventDefault();
   }
 
   function upHandler(e) {
@@ -397,7 +475,12 @@ let Index = () => {
           ref={canvas_ref}
         />
         <canvas
-          style={{ position: 'absolute', left: 0, top: 0 }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            pointerEvents: 'none',
+          }}
           ref={canvas_overlay_ref}
         />
         <div
@@ -415,6 +498,7 @@ let Index = () => {
               ref={textdiv_ref}
               style={{
                 color: 'transparent',
+                background: 'white',
                 position: 'relative',
                 width: '100%',
                 whiteSpace: 'pre-wrap',
@@ -450,47 +534,83 @@ let Index = () => {
         </div>
       </div>
       <div
-        style={{ ...pInline('2ch'), ...pBlock(rlh / 2) }}
+        style={{
+          ...pInline('2ch'),
+          ...pBlock(rlh / 2),
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}
         ref={readout_ref}
       />
       <div
         style={{
           position: 'fixed',
           right: '2ch',
+          maxWidth: 'calc(100% - 4ch)',
           bottom: rlh,
-          ...pInline('2ch'),
-          ...pBlock(rlh / 2),
           background: 'white',
-          outline: 'solid 1px black',
           fontSize: 15,
           lineHeight: 1.5,
         }}
       >
-        <div>Bix let's you draw on binary to glitch text.</div>
-        <div>MOVE</div>
         <div
-          style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+          style={{
+            position: 'fixed',
+            right: '2ch',
+            bottom: rlh,
+            display: !help ? 'block' : 'none',
+          }}
         >
-          <Keycap k="h" label="previous byte" />
-          <Keycap k="j" label="next bit" />
-          <Keycap k="k" label="previous bit" />
-          <Keycap k="l" label="next byte" />
+          <Keycap clickKey={clickKey} k="?" label="" />
         </div>
-        <div>EDIT BINARY</div>
         <div
-          style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+          style={{
+            ...pInline('2ch'),
+            ...pBlock(rlh / 2),
+            outline: 'solid 1px black',
+            display: help ? 'block' : 'none',
+          }}
         >
-          <Keycap k="d" label="draw" />
-          <Keycap k="e" label="erase" />
-          <Keycap k="f" label="flip" />
-          <Keycap k="a" label="add 1 to byte" />
-          <Keycap k="s" label="subtract 1 from byte" />
-        </div>
-        <div>SPECIAL</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <Keycap k="t" label="edit text" />
-          <Keycap k="w" label="save as png" />
-          <Keycap k="?" label="toggle help" />
+          <div style={{ marginBottom: rlh / 4 }}>
+            Bix let's you draw on binary to glitch text.
+          </div>
+          <div>MOVE</div>
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+          >
+            <Keycap clickKey={clickKey} k="h" label="previous byte" />
+            <Keycap clickKey={clickKey} k="j" label="next bit" />
+            <Keycap clickKey={clickKey} k="k" label="previous bit" />
+            <Keycap clickKey={clickKey} k="l" label="next byte" />
+          </div>
+          <div>EDIT BINARY</div>
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+          >
+            <Keycap clickKey={clickKey} k="d" label="draw" />
+            <Keycap clickKey={clickKey} k="e" label="erase" />
+            <Keycap clickKey={clickKey} k="f" label="flip" />
+            <Keycap clickKey={clickKey} k="a" label="add 1 to byte" />
+            <Keycap clickKey={clickKey} k="s" label="subtract 1 from byte" />
+          </div>
+          <div>SIZE</div>
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+          >
+            <Keycap clickKey={clickKey} k="u" label="decrease width" />
+            <Keycap clickKey={clickKey} k="i" label="increase width" />
+          </div>
+          <div>SPECIAL</div>
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', marginBottom: rlh / 4 }}
+          >
+            <Keycap clickKey={clickKey} k="t" label="edit text" />
+            <Keycap clickKey={clickKey} k="w" label="save as txt" />
+            <Keycap clickKey={clickKey} k="?" label="toggle help" />
+          </div>
+          <div>
+            <a href="https://github.com/constraint-systems/bix">View source</a>
+          </div>
         </div>
       </div>
       <style global jsx>{`
