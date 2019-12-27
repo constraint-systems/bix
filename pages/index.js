@@ -20,7 +20,7 @@ let lh = 1.5;
 // let lh = 1.1999988555908203;
 let rlh = fs * lh;
 
-let keys_used = 'hjklfdeastw?ui';
+let keys_used = 'hjklfdeastw?uiUI';
 
 let bs = 6;
 let byte_cols = 1;
@@ -441,6 +441,7 @@ let Index = () => {
   }, [text]);
 
   useEffect(() => {
+    console.log('keys used', keys_used);
     setSize(window.innerWidth);
     respond();
     move();

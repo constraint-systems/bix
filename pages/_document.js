@@ -26,12 +26,9 @@ class MyDocument extends Document {
           <meta property="og:description" content={description} />
           <meta
             property="og:image"
-            content="https://diptych.constraint.systems/diptych-share.png"
+            content="https://bix.constraint.systems/bix-share.png"
           />
-          <meta
-            property="og:url"
-            content="https://diptych.constraint.systems"
-          />
+          <meta property="og:url" content="https://bix.constraint.systems" />
           <meta name="twitter:card" content="summary_large_image" />
         </Head>
         <body>
