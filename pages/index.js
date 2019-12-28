@@ -573,7 +573,7 @@ let Index = () => {
           }}
         >
           <div style={{ marginBottom: rlh / 4 }}>
-            Bix let's you draw on binary to glitch text.
+            Bix lets you draw on binary to glitch text.
           </div>
           <div>MOVE</div>
           <div
