@@ -8,8 +8,7 @@ class MyDocument extends Document {
 
   render() {
     let title = 'Bix';
-    let description =
-      'Pixel-reflow an image to match the dimensions of your text. Save the result as a diptych.';
+    let description = "Bix let's you draw on binary to glitch text.";
     return (
       <Html>
         <Head>
