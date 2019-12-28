@@ -8,7 +8,7 @@ class MyDocument extends Document {
 
   render() {
     let title = 'Bix';
-    let description = 'Bix lets you draw on binary to glitch text.';
+    let description = 'Draw on binary to glitch text.';
     return (
       <Html>
         <Head>
